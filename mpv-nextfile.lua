@@ -82,6 +82,6 @@ function movetofile(forward)
 end
 
 
-mp.add_key_binding('CTRL+l', 'nextfile', nexthandler)
-mp.add_key_binding('CTRL+j', 'previousfile', prevhandler)
+mp.add_key_binding('SHIFT+PGDWN', 'nextfile', nexthandler)
+mp.add_key_binding('CTRL+PGUP', 'previousfile', prevhandler)
 mp.register_event('file-loaded', on_loaded)
