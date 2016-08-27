@@ -14,4 +14,3 @@ This script will force open next or previous file in the currently playing files
 ####My other scripts
 - [unseen-playlistmaker](https://github.com/donmaiq/unseen-playlistmaker)
 - [playlistmanager](https://github.com/donmaiq/Mpv-Playlistmanager)
-- [radio](https://github.com/donmaiq/Mpv-Radio)
