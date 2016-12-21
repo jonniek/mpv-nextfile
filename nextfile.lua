@@ -37,7 +37,7 @@ function movetofile(forward)
 
     local popen=nil
     if settings.linux_over_windows then
-        popen = io.popen('find '..search..' -type f -printf "%f\\n" 2>/dev/null')
+        popen = io.popen('find '..search..' -maxdepth 1 -type f -printf "%f\\n" 2>/dev/null')
     else
         popen = io.popen('dir /b '..search) 
     end
