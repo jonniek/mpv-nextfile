@@ -54,21 +54,25 @@ function toggleauto()
     end
 end
 
+function escapepath(dir, escapechar)
+  return string.gsub(dir, escapechar, '\\'..escapechar)
+end
+
 function movetofile(forward)
 	local search = ' '
     for w in pairs(settings.filetypes) do
         if settings.linux_over_windows then
-			search = search..string.gsub(path, "%s+", "\\ ")..settings.filetypes[w]..' '
+			search = search..settings.filetypes[w]..' '
         else
-            search = search..'"'..path..settings.filetypes[w]..'" '
+            search = search..'"'..escapepath(path, '"')..settings.filetypes[w]..'" '
         end
     end
 
     local popen=nil
     if settings.linux_over_windows then
-        popen = io.popen('find '..search..' -maxdepth 1 -type f -printf "%f\\n" 2>/dev/null | sort -f')
+        popen = io.popen('cd "'..escapepath(path, '"')..'";ls -1p'..search..'2>/dev/null | sort -f')
     else
-        popen = io.popen('dir /b '..search) 
+        popen = io.popen('dir /b'..search) 
     end
     if popen then 
         local found = false
