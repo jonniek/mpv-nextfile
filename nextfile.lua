@@ -19,10 +19,10 @@ local settings = {
 }
 
 function on_loaded()
-    plen = tonumber(mp.get_property('playlist-count'))
-    fullpath = utils.join_path(mp.get_property('working-directory'), mp.get_property('path'))
+    plen = mp.get_property_number('playlist-count')
+    path = utils.join_path(mp.get_property('working-directory'), mp.get_property('path'))
     file = mp.get_property("filename")
-    path = string.sub(fullpath, 1, fullpath:len()-file:len())
+    dir = utils.split_path(path)
 end
 
 function on_close(reason)
@@ -33,11 +33,11 @@ function on_close(reason)
 end
 
 function nexthandler()
-	movetofile(true)
+    movetofile(true)
 end
 
 function prevhandler()
-	movetofile(false)
+    movetofile(false)
 end
 
 function toggleauto()
@@ -59,18 +59,18 @@ function escapepath(dir, escapechar)
 end
 
 function movetofile(forward)
-	local search = ' '
+    local search = ' '
     for w in pairs(settings.filetypes) do
         if settings.linux_over_windows then
-			search = search..settings.filetypes[w]..' '
+            search = search..settings.filetypes[w]..' '
         else
-            search = search..'"'..escapepath(path, '"')..settings.filetypes[w]..'" '
+            search = search..'"'..escapepath(dir, '"')..settings.filetypes[w]..'" '
         end
     end
 
     local popen=nil
     if settings.linux_over_windows then
-        popen = io.popen('cd "'..escapepath(path, '"')..'";ls -1p'..search..'2>/dev/null | sort -f')
+        popen = io.popen('cd "'..escapepath(dir, '"')..'";ls -1p'..search..'2>/dev/null | sort -f')
     else
         popen = io.popen('dir /b'..search) 
     end
@@ -81,31 +81,31 @@ function movetofile(forward)
         local firstfile = nil
         for dirx in popen:lines() do
             if found == true then
-                mp.commandv("loadfile", path..dirx, "replace")
+                mp.commandv("loadfile", dir..dirx, "replace")
                 lastfile=false
                 break
             end
             if dirx == file then
                 found = true
-            	if not forward then
-                	lastfile=false 
-                	if settings.allow_looping and firstfile==nil then 
-                		found=false
-                	else
-                		if firstfile==nil then break end
-            			mp.commandv("loadfile", path..memory, "replace")
-                		break
-                	end
-               	end
+                if not forward then
+                    lastfile=false 
+                    if settings.allow_looping and firstfile==nil then 
+                        found=false
+                    else
+                        if firstfile==nil then break end
+                        mp.commandv("loadfile", dir..memory, "replace")
+                        break
+                    end
+                end
             end
             memory = dirx
-        	if firstfile==nil then firstfile=dirx end
+            if firstfile==nil then firstfile=dirx end
         end
         if lastfile and settings.allow_looping then
-            mp.commandv("loadfile", path..firstfile, "replace")
+            mp.commandv("loadfile", dir..firstfile, "replace")
         end
         if not found then
-            mp.commandv("loadfile", path..memory, "replace")
+            mp.commandv("loadfile", dir..memory, "replace")
         end
 
         popen:close()
