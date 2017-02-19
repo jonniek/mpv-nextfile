@@ -15,7 +15,7 @@ You can copy paste below into your input.conf if you want to change the keybindi
   `CTRL+N script-binding autonextfiletoggle`  
   
 You can also control the script with script-messages if you'd prefer.  
-  `KEY script-message loadnext command value`  
+  `KEY script-message nextfile command value`  
   
 Where command is next, previous or auto. Auto will require the value parameter to be true, false or toggle.
   
