@@ -9,11 +9,15 @@ Set them inside the settings variable at the head of the lua file.
 - automatic next file on end of file
   
 ####keybindings
-You can copy paste below into your input.conf if you want to change the keybindings. The last one is script message to set the automatic toggle to true or false.  
+You can copy paste below into your input.conf if you want to change the keybindings. 
   `SHIFT+PGUP script-binding previousfile`  
   `SHIFT+PGDWN script-binding nextfile`  
   `CTRL+N script-binding autonextfiletoggle`  
-  `KEY script-message loadnextautomatically [true|false]`  
+  
+You can also control the script with script-messages if you'd prefer.  
+  `KEY script-message loadnext command value`  
+  
+Where command is next, previous or auto. Auto will require the value parameter to be true, false or toggle.
   
 #### My other mpv scripts
 - [collection of scripts](https://github.com/donmaiq/mpv-scripts)
