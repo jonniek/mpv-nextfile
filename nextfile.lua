@@ -115,11 +115,15 @@ function movetofile(forward)
 end
 
 --read settings from a script message
-function loadauto(auto)
-  settings.load_next_automatically = ( auto:lower() == 'true' )
+function loadnext(msg, value)
+  if msg == "next" then nexthandler() ; return end
+  if msg == "previous" then prevhandler() ; return end
+  if msg == "auto" then
+    toggleauto(value:lower() == 'true' )
+  end
 end
 
-mp.register_script_message("loadnextautomatically", loadauto)
+mp.register_script_message("loadnext", loadnext)
 mp.add_key_binding('SHIFT+PGDWN', 'nextfile', nexthandler)
 mp.add_key_binding('SHIFT+PGUP', 'previousfile', prevhandler)
 mp.add_key_binding('CTRL+N', 'autonextfiletoggle', toggleauto)
