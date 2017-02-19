@@ -119,6 +119,7 @@ function loadnext(msg, value)
   if msg == "next" then nexthandler() ; return end
   if msg == "previous" then prevhandler() ; return end
   if msg == "auto" then
+    if value == "toggle" then toggleauto() ; return end
     toggleauto(value:lower() == 'true' )
   end
 end
