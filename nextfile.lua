@@ -70,7 +70,7 @@ function movetofile(forward)
 
     local popen=nil
     if settings.linux_over_windows then
-        popen = io.popen('cd "'..escapepath(dir, '"')..'";ls -1p'..search..'2>/dev/null | sort -f')
+        popen = io.popen('cd "'..escapepath(dir, '"')..'";ls -1vp'..search..'2>/dev/null')
     else
         popen = io.popen('dir /b'..search) 
     end
