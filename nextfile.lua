@@ -21,6 +21,7 @@ local settings = {
 function on_loaded()
     plen = mp.get_property_number('playlist-count')
     path = utils.join_path(mp.get_property('working-directory'), mp.get_property('path'))
+    if settings.linux_over_windows == false then path = path:gsub("/","\\") end
     file = mp.get_property("filename")
     dir = utils.split_path(path)
 end
