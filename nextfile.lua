@@ -2,11 +2,12 @@ local utils = require 'mp.utils'
 local msg = require 'mp.msg'
 local settings = {
 
-    --filetypes,{'*mp4','*mkv'} for specific or {'*'} for all filetypes
-    filetypes = {'*mkv','*mp4','*jpg','*gif','*png'}, 
+    --filetypes,{'mp4','mkv'} for specific or {''} for all filetypes
+    filetypes = {'mkv', 'avi', 'mp4', 'ogv', 'webm', 'rmvb', 'flv', 'wmv', 'mpeg', 'mpg', 'm4v', '3gp',
+'mp3', 'wav', 'ogv', 'flac', 'm4a', 'wma', 'jpg', 'gif', 'png', 'jpeg', 'webp'}, 
 
-    --linux(true)/windows(false)
-    linux_over_windows = true,
+    --linux(true)/windows(false)/auto(nil)
+    linux_over_windows = nil,
 
     --at end of directory jump to start and vice versa
     allow_looping = true,
@@ -16,19 +17,40 @@ local settings = {
     --KEY script-message loadnextautomatically [true|false]
     --KEY script-binding toggleauto
     load_next_automatically = false,
-}
 
+    accepted_eof_reasons = {
+        ['eof']=true,     --The file has ended. This can (but doesn't have to) include incomplete files or broken network connections under circumstances.
+        ['stop']=true,    --Playback was ended by a command.
+        ['quit']=false,    --Playback was ended by sending the quit command.
+        ['error']=true,   --An error happened. In this case, an error field is present with the error string.
+        ['redirect']=true,--Happens with playlists and similar. Details see MPV_END_FILE_REASON_REDIRECT in the C API.
+        ['unknown']=true, --Unknown. Normally doesn't happen, unless the Lua API is out of sync with the C API.
+    }
+}
+--check os
+if settings.linux_over_windows==nil then
+  local o = {}
+  if mp.get_property_native('options/vo-mmcss-profile', o) ~= o then
+    settings.linux_over_windows = false
+  else
+    settings.linux_over_windows = true
+  end
+end
+
+local lock = true --to avoid infinite loops
 function on_loaded()
     plen = mp.get_property_number('playlist-count')
     path = utils.join_path(mp.get_property('working-directory'), mp.get_property('path'))
-    if settings.linux_over_windows == false then path = path:gsub("/","\\") end
     file = mp.get_property("filename")
     dir = utils.split_path(path)
+    lock = true
 end
 
 function on_close(reason)
-    if reason.reason == 'eof' and settings.load_next_automatically then
+    if settings.accepted_eof_reasons[reason.reason] and settings.load_next_automatically and lock then
         msg.info("Loading next file in directory")
+        mp.command("playlist-clear")
+        lock = false
         nexthandler()
     end
 end
@@ -44,8 +66,8 @@ end
 function toggleauto()
     if not settings.load_next_automatically then
         settings.load_next_automatically = true
-        if plen ~= 1 then 
-            mp.osd_message("Playlist will be purged when next file is loaded")
+        if mp.get_property_number('playlist-count', 0) > 1 then
+            mp.osd_message("Playlist will be purged when loading new file")
         else
             mp.osd_message("Loading next when file ends")
         end
@@ -60,22 +82,24 @@ function escapepath(dir, escapechar)
 end
 
 function movetofile(forward)
+    settings.load_next_automatically = false
     local search = ' '
     for w in pairs(settings.filetypes) do
         if settings.linux_over_windows then
-            search = search..settings.filetypes[w]..' '
+            if settings.filetypes[w] ~= "" then settings.filetypes[w] = "*"..settings.filetypes[w] end
+            search = search.."*"..settings.filetypes[w]..' '
         else
-            search = search..'"'..escapepath(dir, '"')..settings.filetypes[w]..'" '
+            search = search..'"'..escapepath(dir, '"').."*"..settings.filetypes[w]..'" '
         end
     end
 
-    local popen=nil
+    local popen, err = nil, nil
     if settings.linux_over_windows then
-        popen = io.popen('cd "'..escapepath(dir, '"')..'";ls -1vp'..search..'2>/dev/null')
+        popen, err = io.popen('cd "'..escapepath(dir, '"')..'";ls -1vp'..search..'2>/dev/null')
     else
-        popen = io.popen('dir /b'..search) 
+        popen, err = io.popen('dir /b'..(search:gsub("/", "\\")))
     end
-    if popen then 
+    if popen then
         local found = false
         local memory = nil
         local lastfile = true
@@ -102,17 +126,17 @@ function movetofile(forward)
             memory = dirx
             if firstfile==nil then firstfile=dirx end
         end
-        if lastfile and settings.allow_looping then
+        if lastfile and firstfile and settings.allow_looping then
             mp.commandv("loadfile", dir..firstfile, "replace")
         end
-        if not found then
+        if not found and memory then
             mp.commandv("loadfile", dir..memory, "replace")
         end
-
         popen:close()
     else
-        msg.error("could not scan for files")
+        msg.error("could not scan for files: "..(err or ""))
     end
+    settings.load_next_automatically = load_memory
 end
 
 --read settings from a script message
@@ -125,7 +149,7 @@ function loadnext(msg, value)
   end
 end
 
-mp.register_script_message("loadnext", loadnext)
+mp.register_script_message("nextfile", loadnext)
 mp.add_key_binding('SHIFT+PGDWN', 'nextfile', nexthandler)
 mp.add_key_binding('SHIFT+PGUP', 'previousfile', prevhandler)
 mp.add_key_binding('CTRL+N', 'autonextfiletoggle', toggleauto)
