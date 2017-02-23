@@ -82,7 +82,6 @@ function escapepath(dir, escapechar)
 end
 
 function movetofile(forward)
-    settings.load_next_automatically = false
     local search = ' '
     for w in pairs(settings.filetypes) do
         if settings.linux_over_windows then
@@ -136,7 +135,6 @@ function movetofile(forward)
     else
         msg.error("could not scan for files: "..(err or ""))
     end
-    settings.load_next_automatically = load_memory
 end
 
 --read settings from a script message
