@@ -6,10 +6,10 @@ Set them inside the settings variable at the head of the lua file.
 - filtering by filetype
 - Allow/disallow looping
 - linux/windows
-- automatic next file on end of file
+- automatic next file on end of file(experimental, consider playlists(autoload) instead)
   
 ####keybindings
-You can copy paste below into your input.conf if you want to change the keybindings. 
+You can copy paste below into your input.conf if you want to change the keybindings.   
   `SHIFT+PGUP script-binding previousfile`  
   `SHIFT+PGDWN script-binding nextfile`  
   `CTRL+N script-binding autonextfiletoggle`  
