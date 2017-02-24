@@ -50,7 +50,6 @@ function on_close(reason)
     if settings.accepted_eof_reasons[reason.reason] and settings.load_next_automatically and lock then
         msg.info("Loading next file in directory")
         mp.command("playlist-clear")
-        lock = false
         nexthandler()
     end
 end
@@ -82,6 +81,7 @@ function escapepath(dir, escapechar)
 end
 
 function movetofile(forward)
+    lock = false
     local search = ' '
     for w in pairs(settings.filetypes) do
         if settings.linux_over_windows then
