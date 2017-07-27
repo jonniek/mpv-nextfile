@@ -35,6 +35,7 @@ function escapepath(dir, escapechar)
 end
 
 function movetofile(forward)
+    if mp.get_property('filename'):match("^%a%a+:%/%/") then return end
     local pwd = mp.get_property('working-directory')
     local relpath = mp.get_property('path')
     if not pwd or not relpath then return end
@@ -46,16 +47,15 @@ function movetofile(forward)
     local search = ' '
     for w in pairs(settings.filetypes) do
         if settings.linux_over_windows then
-            if settings.filetypes[w] ~= "" then settings.filetypes[w] = "*"..settings.filetypes[w] end
-            search = search.."*"..settings.filetypes[w]..' '
+            search = search.."*."..settings.filetypes[w]..' '
         else
-            search = search..'"'..escapepath(dir, '"').."*"..settings.filetypes[w]..'" '
+            search = search..'"'..escapepath(dir, '"').."*."..settings.filetypes[w]..'" '
         end
     end
 
     local popen, err = nil, nil
     if settings.linux_over_windows then
-        popen, err = io.popen('cd "'..escapepath(dir, '"')..'";ls -1vp'..search..'2>/dev/null')
+        popen, err = io.popen('cd "'..escapepath(dir, '"')..'";ls -1p'..search..'2>/dev/null')
     else
         popen, err = io.popen('dir /b'..(search:gsub("/", "\\")))
     end
