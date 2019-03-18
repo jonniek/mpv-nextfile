@@ -98,5 +98,7 @@ function movetofile(forward)
     end
 end
 
+mp.register_script_message("previousfile", prevhandler)
+mp.register_script_message("nextfile", nexthandler)
 mp.add_key_binding('shift+RIGHT', 'nextfile', nexthandler)
 mp.add_key_binding('shift+LEFT', 'previousfile', prevhandler)
