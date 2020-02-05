@@ -1,17 +1,25 @@
 local utils = require 'mp.utils'
+local msg = require 'mp.msg'
 local settings = {
 
-    --filetypes,{'mp4','mkv'} for specific or {''} for all filetypes
-    filetypes = {'mkv', 'avi', 'mp4', 'ogv', 'webm', 'rmvb', 'flv', 'wmv', 'mpeg', 'mpg', 'm4v', '3gp',
-'mp3', 'wav', 'ogv', 'flac', 'm4a', 'wma', 'jpg', 'gif', 'png', 'jpeg', 'webp'}, 
+  filetypes = {
+    'jpg', 'jpeg', 'png', 'tif', 'tiff', 'gif', 'webp', 'svg', 'bmp',
+    'mp3', 'wav', 'ogm', 'flac', 'm4a', 'wma', 'ogg', 'opus',
+    'mkv', 'avi', 'mp4', 'ogv', 'webm', 'rmvb', 'flv', 'wmv', 'mpeg', 'mpg', 'm4v', '3gp'
+  },
 
-    --linux(true)/windows(false)/auto(nil)
-    linux_over_windows = nil,
+  --linux(true)/windows(false)/auto(nil)
+  linux_over_windows = nil,
 
-    --at end of directory jump to start and vice versa
-    allow_looping = true,
-
+  --at end of directory jump to start and vice versa
+  allow_looping = true,
 }
+
+local filetype_lookup = {}
+for _, ext in ipairs(settings.filetypes) do
+  filetype_lookup[ext] = true
+end
+
 --check os
 if settings.linux_over_windows==nil then
   local o = {}
@@ -23,80 +31,106 @@ if settings.linux_over_windows==nil then
 end
 
 function nexthandler()
-    movetofile(true)
+  movetofile(true)
 end
 
 function prevhandler()
-    movetofile(false)
+  movetofile(false)
 end
 
-function escapepath(dir, escapechar)
-  return string.gsub(dir, escapechar, '\\'..escapechar)
+function get_files_windows(dir)
+  local args = {
+    'powershell', '-NoProfile', '-Command', [[& {
+          Trap {
+              Write-Error -ErrorRecord $_
+              Exit 1
+          }
+          cd ]]..dir..[[
+
+          $list = (Get-ChildItem -File | Sort-Object { [regex]::Replace($_.Name, '\d+', { $args[0].Value.PadLeft(20) }) }).Name
+          $string = ($list -join "`r`n")
+          $u8list = [System.Text.Encoding]::UTF8.GetBytes($string)
+          [Console]::OpenStandardOutput().Write($u8list, 0, $u8list.Length)
+      }]]
+  }
+  return parse_files(utils.subprocess({ args = args, cancellable = false }))
+end
+
+function get_files_linux(dir)
+  local args = { 'ls', '-1pv', dir }
+  return parse_files(utils.subprocess({ args = args, cancellable = false }))
+end
+
+function parse_files(res)
+  if not res.error and res.status == 0 then
+    local valid_files = {}
+    for line in res.stdout:gmatch("[^\r\n]+") do
+      local ext = line:match("^.+%.(.+)$"):lower()
+      if filetype_lookup[ext] then
+        table.insert(valid_files, line)
+      end
+    end
+    return valid_files, nil
+  else
+    return nil, res.error
+  end
 end
 
 function movetofile(forward)
-    if mp.get_property('filename'):match("^%a%a+:%/%/") then return end
-    local pwd = mp.get_property('working-directory')
-    local relpath = mp.get_property('path')
-    if not pwd or not relpath then return end
+  if mp.get_property('filename'):match("^%a%a+:%/%/") then return end
+  local pwd = mp.get_property('working-directory')
+  local relpath = mp.get_property('path')
+  if not pwd or not relpath then return end
 
-    local path = utils.join_path(pwd, relpath)
-    local file = mp.get_property("filename")
-    local dir = utils.split_path(path)
+  local path = utils.join_path(pwd, relpath)
+  local filename = mp.get_property("filename")
+  local dir = utils.split_path(path)
 
-    local search = ' '
-    for w in pairs(settings.filetypes) do
-        if settings.linux_over_windows then
-            search = search.."*."..settings.filetypes[w]..' '
+  local files, error
+  if settings.linux_over_windows then
+    files, error = get_files_linux(dir)
+  else
+    files, error = get_files_windows(dir)
+  end
+
+  if not files then
+    msg.error("Subprocess failed: "..error)
+    return
+  end
+
+  local found = false
+  local memory = nil
+  local lastfile = true
+  local firstfile = nil
+  for _, file in ipairs(files) do
+    if found == true then
+      mp.commandv("loadfile", dir..file, "replace")
+      lastfile = false
+      break
+    end
+    if file == filename then
+      found = true
+      if not forward then
+        lastfile = false
+        if settings.allow_looping and firstfile == nil then
+          found = false
         else
-            search = search..'"'..escapepath(dir, '"').."*."..settings.filetypes[w]..'" '
+          if firstfile == nil then break end
+          mp.commandv("loadfile", dir..memory, "replace")
+          break
         end
+      end
     end
-
-    local popen, err = nil, nil
-    if settings.linux_over_windows then
-        popen, err = io.popen('cd "'..escapepath(dir, '"')..'";ls -1p'..search..'2>/dev/null')
-    else
-        popen, err = io.popen('dir /b'..(search:gsub("/", "\\")))
-    end
-    if popen then
-        local found = false
-        local memory = nil
-        local lastfile = true
-        local firstfile = nil
-        for dirx in popen:lines() do
-            if found == true then
-                mp.commandv("loadfile", dir..dirx, "replace")
-                lastfile=false
-                break
-            end
-            if dirx == file then
-                found = true
-                if not forward then
-                    lastfile=false 
-                    if settings.allow_looping and firstfile==nil then 
-                        found=false
-                    else
-                        if firstfile==nil then break end
-                        mp.commandv("loadfile", dir..memory, "replace")
-                        break
-                    end
-                end
-            end
-            memory = dirx
-            if firstfile==nil then firstfile=dirx end
-        end
-        if lastfile and firstfile and settings.allow_looping then
-            mp.commandv("loadfile", dir..firstfile, "replace")
-        end
-        if not found and memory then
-            mp.commandv("loadfile", dir..memory, "replace")
-        end
-        popen:close()
-    else
-        mp.msg.error("could not scan for files: "..(err or ""))
-    end
+    memory = file
+    if firstfile == nil then firstfile = file end
+  end
+  if lastfile and firstfile and settings.allow_looping then
+    mp.commandv("loadfile", dir..firstfile, "replace")
+  end
+  if not found and memory then
+    mp.commandv("loadfile", dir..memory, "replace")
+  end
 end
 
-mp.add_key_binding('shift+RIGHT', 'nextfile', nexthandler)
-mp.add_key_binding('shift+LEFT', 'previousfile', prevhandler)
+mp.add_key_binding('Shift+RIGHT', 'nextfile', nexthandler)
+mp.add_key_binding('Shift+LEFT', 'previousfile', prevhandler)
