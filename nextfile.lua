@@ -48,7 +48,7 @@ function get_files_windows(dir)
           cd "]]..dir..[["
 
           $list = (Get-ChildItem -File | Sort-Object { [regex]::Replace($_.Name, '\d+', { $args[0].Value.PadLeft(20) }) }).Name
-          $string = ($list -join "`r`n")
+          $string = ($list -join "/")
           $u8list = [System.Text.Encoding]::UTF8.GetBytes($string)
           [Console]::OpenStandardOutput().Write($u8list, 0, $u8list.Length)
       }]]
@@ -57,16 +57,16 @@ function get_files_windows(dir)
 end
 
 function get_files_linux(dir)
-  local args = { 'ls', '-1pv', dir }
+  local args = { 'find', dir, '-type', 'f', '-printf', '%f/' }
   return parse_files(utils.subprocess({ args = args, cancellable = false }))
 end
 
 function parse_files(res)
   if not res.error and res.status == 0 then
     local valid_files = {}
-    for line in res.stdout:gmatch("[^\r\n]+") do
-      local ext = line:match("^.+%.(.+)$"):lower()
-      if filetype_lookup[ext] then
+    for line in res.stdout:gmatch("[^%/]+") do
+      local ext = line:match("^.+%.(.+)$")
+      if ext and filetype_lookup[ext:lower()] then
         table.insert(valid_files, line)
       end
     end
@@ -94,7 +94,7 @@ function movetofile(forward)
   end
 
   if not files then
-    msg.error("Subprocess failed: "..error)
+    msg.error("Subprocess failed: "..(error or ''))
     return
   end
 
@@ -104,7 +104,7 @@ function movetofile(forward)
   local firstfile = nil
   for _, file in ipairs(files) do
     if found == true then
-      mp.commandv("loadfile", dir..file, "replace")
+      mp.commandv("loadfile", utils.join_path(dir, file), "replace")
       lastfile = false
       break
     end
@@ -116,7 +116,7 @@ function movetofile(forward)
           found = false
         else
           if firstfile == nil then break end
-          mp.commandv("loadfile", dir..memory, "replace")
+          mp.commandv("loadfile", utils.join_path(dir, memory), "replace")
           break
         end
       end
@@ -125,10 +125,10 @@ function movetofile(forward)
     if firstfile == nil then firstfile = file end
   end
   if lastfile and firstfile and settings.allow_looping then
-    mp.commandv("loadfile", dir..firstfile, "replace")
+    mp.commandv("loadfile", utils.join_path(dir, firstfile), "replace")
   end
   if not found and memory then
-    mp.commandv("loadfile", dir..memory, "replace")
+    mp.commandv("loadfile", utils.join_path(dir, memory), "replace")
   end
 end
 
