@@ -30,6 +30,15 @@ if settings.linux_over_windows==nil then
   end
 end
 
+function alphanumsort(o)
+  local function padnum(d) local dec, n = string.match(d, "(%.?)0*(.+)")
+    return #dec > 0 and ("%.12f"):format(d) or ("%s%03d%s"):format(dec, #n, n) end
+  table.sort(o, function(a,b)
+    return tostring(a):gsub("%.?%d+",padnum)..("%3d"):format(#b)
+         < tostring(b):gsub("%.?%d+",padnum)..("%3d"):format(#a) end)
+  return o
+end
+
 function nexthandler()
   movetofile(true)
 end
@@ -60,9 +69,9 @@ function get_files_windows(dir)
 end
 
 function get_files_linux(dir)
-  local args = { 'ls', '-1pv', dir }
+  local args = { 'find', dir, '-type', 'f', '-printf', '%f/' }
   local process = utils.subprocess({ args = args, cancellable = false })
-  return parse_files(process, '\n')
+  return parse_files(process, '/')
 end
 
 function parse_files(res, delimiter)
@@ -93,6 +102,7 @@ function movetofile(forward)
   local files, error
   if settings.linux_over_windows then
     files, error = get_files_linux(dir)
+    alphanumsort(files)
   else
     files, error = get_files_windows(dir)
   end
