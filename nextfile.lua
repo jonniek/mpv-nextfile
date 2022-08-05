@@ -60,7 +60,7 @@ function get_files_windows(dir)
 end
 
 function get_files_linux(dir)
-  local args = { 'ls', '-1pv', dir }
+  local args = { 'ls', '-1p', dir }
   local process = utils.subprocess({ args = args, cancellable = false })
   return parse_files(process, '\n')
 end
