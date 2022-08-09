@@ -13,6 +13,9 @@ local settings = {
 
   --at end of directory jump to start and vice versa
   allow_looping = true,
+  
+  --order by version number, thus behaving case-insensitively
+  version_flag = true,
 }
 
 local filetype_lookup = {}
@@ -60,7 +63,8 @@ function get_files_windows(dir)
 end
 
 function get_files_linux(dir)
-  local args = { 'ls', '-1p', dir }
+  local flags = ('-1p' .. (version_flag and 'v' or ''))
+  local args = { 'ls', flags, dir }
   local process = utils.subprocess({ args = args, cancellable = false })
   return parse_files(process, '\n')
 end
