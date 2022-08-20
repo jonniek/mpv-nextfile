@@ -13,6 +13,11 @@ local settings = {
 
   --at end of directory jump to start and vice versa
   allow_looping = true,
+  
+  --order by natural (version) numbers, thus behaving case-insensitively and treating multi-digit numbers atomically
+  --e.x.: true will result in the following order:   09A 9A  09a 9a  10A 10a
+  --      while false will result in:                09a 09A 10a 10A 9a  9A
+  version_flag = true,
 }
 
 local filetype_lookup = {}
@@ -60,7 +65,8 @@ function get_files_windows(dir)
 end
 
 function get_files_linux(dir)
-  local args = { 'ls', '-1pv', dir }
+  local flags = ('-1p' .. (version_flag and 'v' or ''))
+  local args = { 'ls', flags, dir }
   local process = utils.subprocess({ args = args, cancellable = false })
   return parse_files(process, '\n')
 end
