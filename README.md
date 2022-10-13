@@ -14,4 +14,4 @@ You can copy paste below into your input.conf if you want to change the keybindi
   
   
 #### My other mpv scripts
-- [collection of scripts](https://github.com/donmaiq/mpv-scripts)
+- [collection of scripts](https://github.com/jonniek/mpv-scripts)
