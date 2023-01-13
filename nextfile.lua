@@ -65,7 +65,7 @@ function get_files_windows(dir)
 end
 
 function get_files_linux(dir)
-  local flags = ('-1p' .. (version_flag and 'v' or ''))
+  local flags = ('-1p' .. (settings.version_flag and 'v' or ''))
   local args = { 'ls', flags, dir }
   local process = utils.subprocess({ args = args, cancellable = false })
   return parse_files(process, '\n')
